@@ -8,33 +8,45 @@
 # 
 import os
 import gradio as gr
+import torch
 
 # 1. Import the necessary libraries
-from langchain_huggingface import HuggingFaceEndpoint, HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFacePipeline, HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 # Setup environment (Replace 'hf_...' with your actual token if not set in env)
 # os.environ["HUGGINGFACEHUB_API_TOKEN"] = "hf_your_token_here"
 
-# 2. Initialize the LLM (Qwen 2.5)
-llm = HuggingFaceEndpoint(
-    repo_id="Qwen/Qwen2.5-3B-Instruct",
-    provider="hf-inference",
-    task="text-generation",
+# 2. Initialize the LLM (Qwen 2.5) from local cache
+# local_files_only=True ensures we don't re-download if already cached.
+model_id = "Qwen/Qwen2.5-3B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_id, local_files_only=True)
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    device_map="auto",
+    dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+    local_files_only=True,
+)
+text_gen_pipeline = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
     max_new_tokens=512,
     do_sample=False,
     temperature=0.1,
 )
+llm = HuggingFacePipeline(pipeline=text_gen_pipeline)
 
 # 3. Define the embedding model
-# BGE-M3 supports 100+ languages including Myanmar, ideal for multilingual RAG.
 embedding_model = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-m3"
+    model_name="ibm-granite/granite-embedding-125m-english",
+    model_kwargs={"local_files_only": True},
 )
 
 # Global variable to store the QA chain
