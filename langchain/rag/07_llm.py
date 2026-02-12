@@ -9,24 +9,8 @@ Supported Models:
 """
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from langchain_huggingface import HuggingFacePipeline
-
-
-class _StopOnTokens(StoppingCriteria):
-    """
-    LLM က answer တစ်ခုပြီးရင် ရပ်အောင် stop strings တွေကို detect လုပ်ပေးတယ်။
-    မဟုတ်ရင် Human/Assistant pairs တွေ ဆက်ပြီး generate လုပ်သွားမယ်။
-    """
-
-    def __init__(self, tokenizer, stop_strings: list[str]):
-        self.tokenizer = tokenizer
-        self.stop_strings = stop_strings
-
-    def __call__(self, input_ids, scores, **kwargs) -> bool:
-        # Decode the last generated tokens and check for stop strings
-        generated_text = self.tokenizer.decode(input_ids[0][-30:], skip_special_tokens=True)
-        return any(s in generated_text for s in self.stop_strings)
 
 
 def load_llm(
@@ -65,17 +49,10 @@ def load_llm(
     if do_sample and temperature is not None:
         gen_kwargs["temperature"] = temperature
 
-    # Stop strings — answer ပြီးရင် ဒီ patterns တွေ့တာနဲ့ generation ရပ်မယ်
-    stop_strings = ["Human:", "H:", "human:", "\nH:", "\nHuman:"]
-    stopping_criteria = StoppingCriteriaList([
-        _StopOnTokens(tokenizer, stop_strings),
-    ])
-
     text_gen_pipeline = pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        stopping_criteria=stopping_criteria,
         return_full_text=False,
         **gen_kwargs,
     )
