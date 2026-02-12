@@ -40,7 +40,24 @@ def build_interface(process_fn, answer_fn) -> gr.Blocks:
             with gr.Column():
                 question_input = gr.Textbox(label="Your Question")
                 submit_btn = gr.Button("Ask")
-                answer_output = gr.Textbox(label="Answer")
+                answer_output = gr.Textbox(label="Answer", lines=6)
+
+        gr.Markdown("---")
+        gr.Markdown("### 🔍 Debug Info")
+
+        with gr.Row():
+            with gr.Column():
+                retrieval_output = gr.Textbox(
+                    label="Retrieved Chunks + Similarity Scores",
+                    interactive=False,
+                    lines=12,
+                )
+            with gr.Column():
+                prompt_output = gr.Textbox(
+                    label="Augmented Prompt → LLM",
+                    interactive=False,
+                    lines=12,
+                )
 
         # Button actions
         process_btn.click(
@@ -52,7 +69,7 @@ def build_interface(process_fn, answer_fn) -> gr.Blocks:
         submit_btn.click(
             fn=answer_fn,
             inputs=question_input,
-            outputs=answer_output,
+            outputs=[answer_output, retrieval_output, prompt_output],
         )
 
     return demo

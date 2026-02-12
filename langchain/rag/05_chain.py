@@ -35,6 +35,27 @@ def get_prompt_template() -> ChatPromptTemplate:
     return prompt
 
 
+def format_augmented_prompt(retrieved_docs: list, user_question: str) -> str:
+    """
+    Retrieved docs နဲ့ user question ကို ပေါင်းစပ်ပြီး
+    LLM ထဲ ဝင်သွားမယ့် augmented prompt ကို preview string ပြန်ပေးတယ်။
+
+    Args:
+        retrieved_docs: Retrieved Document objects
+        user_question: User ရဲ့ question
+
+    Returns:
+        str: Augmented prompt preview
+    """
+    context = "\n\n".join(doc.page_content for doc in retrieved_docs)
+    filled_system = SYSTEM_PROMPT.replace("{context}", context)
+
+    return (
+        f"[SYSTEM]\n{filled_system}\n\n"
+        f"[HUMAN]\n{user_question}"
+    )
+
+
 def create_qa_chain(llm, retriever):
     """
     LLM နဲ့ Retriever ကို ပေါင်းစပ်ပြီး RAG chain တည်ဆောက်တယ်။
